@@ -54,6 +54,7 @@ while True:
         connection.close()
 
     elif path == "/hello":
+
         body = "Привет от сервера".encode("utf-8")
 
         connection.sendall(b"HTTP/1.1 200 OK\r\n")
