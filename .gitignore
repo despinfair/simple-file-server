@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Секреты
+.env
+
+# Редакторы
+.idea/
+.vscode/
+
+# ОС
+Thumbs.db
+.DS_Store
+
+# Логи
+*.log
+
+# local
+index.html
+content/
+refs/
