@@ -2,8 +2,10 @@ import socket
 import os
 import mimetypes
 import html
+from urllib.parse import unquote
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind(("0.0.0.0", 1159))
 server_socket.listen()
 
@@ -13,7 +15,11 @@ while True:
     data = connection.recv(1024)
     print(data.decode())
 
-    path = data.decode().split()[1]
+    path = "/"
+    paths = data.decode().split()
+    if len(paths) > 1:
+        path = unquote(paths[1])
+
     print(path)
 
     root = os.path.abspath("./content")
@@ -24,7 +30,9 @@ while True:
         connection.close()
         continue
 
-    if path == "/":
+    isdir_or_filenotexist = (os.path.isdir(file_path) or not os.path.exists(file_path)) and path != "/"
+
+    if path == "/" or isdir_or_filenotexist:
         items = os.listdir(root)
 
         links = ""
@@ -40,6 +48,7 @@ while True:
             <title>File Server</title>
         </head>
         <body>
+            <h2>{"" if not isdir_or_filenotexist else f"{path[1::]} is directory or doesnt exist"}<h2>
             <h1>Files</h1>
             {links}
         </body>
@@ -54,6 +63,7 @@ while True:
         connection.close()
 
     elif path == "/hello":
+
         body = "Привет от сервера".encode("utf-8")
 
         connection.sendall(b"HTTP/1.1 200 OK\r\n")
@@ -65,18 +75,14 @@ while True:
         connection.close()
 
     else:
-        try:
-            with open(root + path, "rb") as file:
-                body = file.read()
+        with open(root + path, "rb") as file:
+            body = file.read()
 
-            content_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+        content_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
 
-            connection.sendall(b"HTTP/1.1 200 OK\r\n")
-            connection.sendall(f"Content-Type: {content_type}\r\n".encode())
-            connection.sendall(b"\r\n")
-            connection.sendall(body)
-            connection.close()
+        connection.sendall(b"HTTP/1.1 200 OK\r\n")
+        connection.sendall(f"Content-Type: {content_type}\r\n".encode())
+        connection.sendall(b"\r\n")
+        connection.sendall(body)
+        connection.close()
 
-        except FileNotFoundError:
-            connection.sendall(b"HTTP/1.1 404 Not Found\r\n")
-            connection.close()
